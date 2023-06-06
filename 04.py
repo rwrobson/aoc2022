@@ -37,19 +37,19 @@ class assignment_pair:
         return "Distinct"
 
 
-assert (str(assignment_pair("2-4,6-8")) == "Distinct")
-assert (str(assignment_pair("2-3,4-5")) == "Distinct")
-assert (str(assignment_pair("5-7,7-9")) == "Overlaps")
-assert (str(assignment_pair("2-8,3-7")) == "Contains")
-assert (str(assignment_pair("6-6,4-6")) == "Contains")
-assert (str(assignment_pair("2-6,4-8")) == "Overlaps")
+assert str(assignment_pair("2-4,6-8")) == "Distinct"
+assert str(assignment_pair("2-3,4-5")) == "Distinct"
+assert str(assignment_pair("5-7,7-9")) == "Overlaps"
+assert str(assignment_pair("2-8,3-7")) == "Contains"
+assert str(assignment_pair("6-6,4-6")) == "Contains"
+assert str(assignment_pair("2-6,4-8")) == "Overlaps"
 
-assert (str(assignment_pair("6-8,2-4")) == "Distinct")
-assert (str(assignment_pair("4-5,2-3")) == "Distinct")
-assert (str(assignment_pair("7-9,5-7")) == "Overlaps")
-assert (str(assignment_pair("3-7,2-8")) == "Contains")
-assert (str(assignment_pair("4-6,6-6")) == "Contains")
-assert (str(assignment_pair("4-8,2-6")) == "Overlaps")
+assert str(assignment_pair("6-8,2-4")) == "Distinct"
+assert str(assignment_pair("4-5,2-3")) == "Distinct"
+assert str(assignment_pair("7-9,5-7")) == "Overlaps"
+assert str(assignment_pair("3-7,2-8")) == "Contains"
+assert str(assignment_pair("4-6,6-6")) == "Contains"
+assert str(assignment_pair("4-8,2-6")) == "Overlaps"
 
 count_of_contains = 0
 count_of_overlaps = 0

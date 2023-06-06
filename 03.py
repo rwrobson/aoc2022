@@ -13,10 +13,10 @@ def split_in_half(full_string):
     return [full_string[0:halfway], full_string[-halfway:]]
 
 
-assert (split_in_half("") == ["", ""])
-assert (split_in_half("ab") == ["a", "b"])
-assert (split_in_half("abb") == ["a", "b"])
-assert (split_in_half("aaaabb") == ["aaa", "abb"])
+assert split_in_half("") == ["", ""]
+assert split_in_half("ab") == ["a", "b"]
+assert split_in_half("abb") == ["a", "b"]
+assert split_in_half("aaaabb") == ["aaa", "abb"]
 
 
 def eliminate_repeats(full_string):
@@ -29,9 +29,9 @@ def eliminate_repeats(full_string):
     return output
 
 
-assert (eliminate_repeats("") == "")
-assert (eliminate_repeats("abc") == "abc")
-assert (eliminate_repeats("abbccca") == "abca")
+assert eliminate_repeats("") == ""
+assert eliminate_repeats("abc") == "abc"
+assert eliminate_repeats("abbccca") == "abca"
 
 
 def get_intersection(string1, string2):
@@ -52,10 +52,10 @@ def get_intersection(string1, string2):
     return output
 
 
-assert (get_intersection("", "") == "")
-assert (get_intersection("abc", "def") == "")
-assert (get_intersection("abcd", "bdef") == "bd")
-assert (get_intersection("hello", "world") == "lo")
+assert get_intersection("", "") == ""
+assert get_intersection("abc", "def") == ""
+assert get_intersection("abcd", "bdef") == "bd"
+assert get_intersection("hello", "world") == "lo"
 
 
 def get_priority(char):
@@ -68,11 +68,11 @@ def get_priority(char):
         return code - ORD_CAP_A + 27
 
 
-assert (get_priority("a") == 1)
-assert (get_priority("b") == 2)
-assert (get_priority("z") == 26)
-assert (get_priority("A") == 27)
-assert (get_priority("Z") == 52)
+assert get_priority("a") == 1
+assert get_priority("b") == 2
+assert get_priority("z") == 26
+assert get_priority("A") == 27
+assert get_priority("Z") == 52
 
 
 rucksack_contents = [x.strip() for x in rucksack_contents_string.split("\n") if not x.strip() == ""]
