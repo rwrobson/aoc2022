@@ -1,3 +1,5 @@
+import gc
+
 class Monkey:
     def __init__(self, items: list[int], operation: str, operation_amount: int, test_divisor: int, true_destination: int, false_destination: int, number: int = None) -> None:
         self.items = items
@@ -8,8 +10,9 @@ class Monkey:
         self.false_destination = false_destination
         self.number = number
         self.inspections = 0
+        self.modulator = None
 
-    def take_turn(self, verbose: bool = False) -> None:
+    def take_turn(self, reduce_worry_by_one_third: bool, verbose: bool = False) -> None:
         if verbose:
             print("Monkey%s:" % (" #%d" % self.number if self.number else ""))
         for item in self.items:
@@ -30,9 +33,12 @@ class Monkey:
                     item_value *= item_value
                     if verbose:
                         print("    Worry level is multiplied by itself to %d." % (item_value))
-            item_value //= 3
-            if verbose:
-                print("    Monkey gets bored with item. Worry level is divided by 3 to %d." % item_value)
+            if reduce_worry_by_one_third:
+                item_value //= 3
+                if verbose:
+                    print("    Monkey gets bored with item. Worry level is divided by 3 to %d." % item_value)
+            if self.modulator:
+                item_value %= self.modulator
             if item_value % self.test_divisor == 0:
                 monkeys[self.true_destination].items.append(item_value)
                 if verbose:
@@ -144,18 +150,39 @@ Monkey 3:
     If true: throw to monkey 0
     If false: throw to monkey 1""")
 
-print(monkeys)
-
+modulator = 1
 for monkey in monkeys:
-    monkey.take_turn(True)
+    modulator *= monkey.test_divisor
 
-print(monkeys)
+print ("Setting modulator = %d" % modulator)
+for monkey in monkeys:
+    monkey.modulator = modulator
 
-for i in range(2, 21):
+part = 2
+if part == 1:
+    print(monkeys)
+
     for monkey in monkeys:
-        monkey.take_turn()
+        monkey.take_turn(True, True)
 
     print(monkeys)
+
+    for round in range(2, 21):
+        for monkey in monkeys:
+            monkey.take_turn(True)
+        print(monkeys)
+
+
+else:
+    for round in range(1, 10001):
+        for monkey in monkeys:
+            monkey.take_turn(False)
+
+        if round == 1 or round == 20 or round % 1000 == 0:
+
+            print("== After round %d ==" % round)
+            for monkey in monkeys:
+                print("Monkey %d inspected items %d times." % (monkey.number, monkey.inspections))
 
 inspections = []
 for monkey in monkeys:
@@ -166,4 +193,3 @@ sorted_inspections = sorted(inspections)
 monkey_business = sorted_inspections[-1] * sorted_inspections[-2]
 
 print("Part 1: level of monkey business = %d" % monkey_business)
-
