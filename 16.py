@@ -18,6 +18,9 @@ class Node:
         self.address = address
         self.flow_rate = flow_rate
         self.connecting_addresses = connecting_addresses
+
+        self.distances = None
+
         self.path_set = False
         self.parent_address = None
         self.distance_to_root = None
@@ -36,14 +39,42 @@ class Node:
             self.distance_to_root = parent_node.distance_to_root + 1
             self.path_to_root = new_path
 
-
-
     def set_root(self):
         assert not self.path_set
         self.path_set = True
         self.parent_address = ""
         self.distance_to_root = 0
         self.path_to_root = self.address
+
+    def calc_distances(self, nodes: dict[str]):
+        # Dijkstra
+        SOME_BIG_NUMBER = 999999
+        unvisited_list = {node_address: SOME_BIG_NUMBER for node_address in nodes.keys()
+                          if not node_address == self.address}
+        visited_list = {self.address: 0}
+        current_address = self.address
+
+        while current_address:
+            # Examine the nodes that can be reached directly from the current node, and that have not yet been visited:
+            new_cost = visited_list[current_address] + 1
+            for neighbor_address in nodes[current_address].connecting_addresses:
+                if not neighbor_address in visited_list:
+                    """The cost through the current node is the current node's cost + 1.  
+                    If that is less than this node's cost, use that instead"""
+                    neighbor_cost = unvisited_list[neighbor_address]
+                    if neighbor_cost > new_cost:
+                        unvisited_list[neighbor_address] = new_cost
+
+            """Pick the node that has the lowest cost (so far) in the unvisited list."""
+            current_address = None
+            for node_address in unvisited_list.keys():
+                if not current_address or unvisited_list[node_address] < unvisited_list[current_address]:
+                    current_address = node_address
+            if current_address:
+                visited_list[current_address] = unvisited_list[current_address]
+                del unvisited_list[current_address]
+
+        self.distances = visited_list
 
     def __repr__(self):
         if self.path_set:
@@ -75,7 +106,12 @@ def parse_text(text: str) -> dict[str, Node]:
     return { node.address : node for node in parsed_nodes }
 
 
-def evaluate_paths(nodes: dict[str, Node], start_node: str, time_limit: int) -> dict:
+def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int) -> dict:
+    valve_addresses = [address for address in nodes if nodes[address].flow_rate > 0]
+    valve_addresses.append(start_address)
+    for address in valve_addresses:
+        nodes[address].calc_distances(nodes)
+
     accumulated_paths = {}
     closed_valves = set([node_address for node_address in nodes.keys() if nodes[node_address].flow_rate > 0])
 
@@ -97,7 +133,7 @@ def evaluate_paths(nodes: dict[str, Node], start_node: str, time_limit: int) -> 
 
             build_paths(nodes, closed_valves, time_left - 1, current_path + " " + node_address, current_path_value, accumulated_paths)
 
-    build_paths(nodes, closed_valves, time_limit, start_node, 0, accumulated_paths)
+    build_paths(nodes, closed_valves, time_limit, start_address, 0, accumulated_paths)
     return accumulated_paths
 
 
@@ -130,12 +166,14 @@ def print_node_tree(nodes):
         print("%s, %d, %s, %d, %s" % (node.address, node.distance_to_root, node.path_to_root,  node.flow_rate,
                                       ", ".join(sorted(node.connecting_addresses))))
 
-# test_paths = evaluate_paths( parse_text(test_input_text), "AA", 30)
+# test_paths = evaluate_paths(parse_text(test_input_text), "AA", 30)
 
 
-test_nodes = parse_text(test_input_text)
-populate_distance_to_root(test_nodes, "AA")
+nodes = parse_text(test_input_text)
+#populate_distance_to_root(test_nodes, "AA")
 #print_node_tree(test_nodes)
+
+evaluate_paths(nodes, "AA", 30)
 
 
 
@@ -213,5 +251,5 @@ Valve KL has flow rate=0; tunnels lead to valves TN, OQ
 Valve ZX has flow rate=5; tunnels lead to valves JS, HP, VL, NQ, TS"""
 
 real_data_nodes = parse_text(real_data_input_text)
-populate_distance_to_root(real_data_nodes, "AA")
-print_node_tree(real_data_nodes)
+#populate_distance_to_root(real_data_nodes, "AA")
+#print_node_tree(real_data_nodes)
