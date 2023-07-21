@@ -1,4 +1,5 @@
 import re
+
 test_input_text = """
 Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
 Valve BB has flow rate=13; tunnels lead to valves CC, AA
@@ -20,31 +21,6 @@ class Node:
         self.connecting_addresses = connecting_addresses
 
         self.distances = None
-
-        self.path_set = False
-        self.parent_address = None
-        self.distance_to_root = None
-        self.path_to_root = None
-        self.alternate_paths_to_root = []
-
-    def set_parent(self, parent_node):
-        if self.path_set:
-            new_path = (parent_node.path_to_root + " " + self.address).strip()
-            assert self.distance_to_root == parent_node.distance_to_root + 1
-            self.alternate_paths_to_root.append(new_path)
-        else:
-            self.path_set = True
-            self.parent_address = parent_node.address
-            new_path = (parent_node.path_to_root + " " + self.address).strip()
-            self.distance_to_root = parent_node.distance_to_root + 1
-            self.path_to_root = new_path
-
-    def set_root(self):
-        assert not self.path_set
-        self.path_set = True
-        self.parent_address = ""
-        self.distance_to_root = 0
-        self.path_to_root = self.address
 
     def calc_distances(self, nodes: dict[str]):
         # Dijkstra
@@ -77,14 +53,9 @@ class Node:
         self.distances = visited_list
 
     def __repr__(self):
-        if self.path_set:
-            return "Node(%s, %d, %s)" % (self.path_to_root,
-                                         self.flow_rate,
-                                         self.connecting_addresses)
-        else:
-            return "Node(%s, %d, %s)" % (self.address,
-                                         self.flow_rate,
-                                         self.connecting_addresses)
+        return "Node(%s, %d, %s)" % (self.path_to_root,
+                                     self.flow_rate,
+                                     self.connecting_addresses)
 
 
 def parse_line(text: str) -> Node:
@@ -106,75 +77,47 @@ def parse_text(text: str) -> dict[str, Node]:
     return { node.address : node for node in parsed_nodes }
 
 
-def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int) -> dict:
-    valve_addresses = [address for address in nodes if nodes[address].flow_rate > 0]
-    valve_addresses.append(start_address)
-    for address in valve_addresses:
+def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, actors: int) -> (int, str):
+    closed_valves = [address for address in nodes if nodes[address].flow_rate > 0]
+    for address in closed_valves:
         nodes[address].calc_distances(nodes)
+    nodes[start_address].calc_distances(nodes)
 
-    accumulated_paths = {}
-    closed_valves = set([node_address for node_address in nodes.keys() if nodes[node_address].flow_rate > 0])
+    best_path = ""
+    best_value = 0
 
-    def build_paths(nodes: dict[str, Node], closed_valves: set[str], time_left: int, current_path: str, current_path_value: int, accumulated_paths: dict[str, int]):
-        if len(closed_valves) == 0 or time_left == 0:
+    def build_paths(closed_valves_in_scenario: list[str], time_left: int, current_path: str, current_path_value: int):
+        nonlocal best_path, best_value
+        if False and len(closed_valves_in_scenario) == 0 or time_left < 0:
             # all the valves are open, or we are out of time, nothing left to do
-            accumulated_paths[current_path] = current_path_value
-            print (current_path_value, current_path)
+            if not best_value or current_path_value > best_value:
+                best_path = current_path
+                best_value = current_path_value
+                print("Found %d at %s" % (best_value, best_path))
             return
         this_node_address = current_path[-2:]
-        if this_node_address in closed_valves:
-            # if this valve is closed, try opening it, and then recurse to self
-            new_closed_valves = closed_valves.copy()
-            new_closed_valves.remove(this_node_address)
-            added_value = (time_left - 1) * nodes[this_node_address].flow_rate
-            build_paths(nodes, new_closed_valves, time_left - 1, current_path + " %d " % added_value + this_node_address, current_path_value + added_value, accumulated_paths)
-        # also try going down all other corridors - in this scenario, the valve state doesn't change
-        for node_address in nodes[this_node_address].connecting_addresses:
+        found_something_better = False
+        for next_valve_address in closed_valves_in_scenario:
+            distance = nodes[this_node_address].distances[next_valve_address]
+            new_time_left = time_left - distance - 1
+            if new_time_left > 0:
+                found_something_better = True
+                new_closed_values = [address for address in closed_valves_in_scenario if address != next_valve_address]
+                new_value = current_path_value + nodes[next_valve_address].flow_rate * new_time_left
+                build_paths(new_closed_values, new_time_left, current_path+" "+next_valve_address, new_value)
+        if not found_something_better:
+            if not best_value or current_path_value > best_value:
+                best_path = current_path
+                best_value = current_path_value
+                print("Found %d at %s" % (best_value, best_path))
 
-            build_paths(nodes, closed_valves, time_left - 1, current_path + " " + node_address, current_path_value, accumulated_paths)
-
-    build_paths(nodes, closed_valves, time_limit, start_address, 0, accumulated_paths)
-    return accumulated_paths
-
-
-def populate_distance_to_root(nodes: dict[str, Node], root_node_address: str):
-    nodes[root_node_address].set_root()
-
-    orphan_node_count = len(nodes)
-    orphan_node_count_previous = orphan_node_count + 1
-
-    parent_depth = 0
-    while 0 < orphan_node_count < orphan_node_count_previous:
-        orphan_node_count_previous = orphan_node_count
-        for node_address in nodes:
-            node = nodes[node_address]
-            if not node.path_set:
-                for possible_parent_address in sorted(node.connecting_addresses):
-                    possible_parent = nodes[possible_parent_address]
-                    if possible_parent.path_set and possible_parent.distance_to_root == parent_depth:
-                        node.set_parent(nodes[possible_parent_address])
-        orphan_node_count = 0
-        for node_address in nodes:
-            if not nodes[node_address].path_set:
-                orphan_node_count += 1
-        parent_depth += 1
+    build_paths(closed_valves, time_limit, start_address, 0)
+    return best_value, best_path
 
 
-def print_node_tree(nodes):
-    for node_address in sorted(nodes):
-        node = nodes[node_address]
-        print("%s, %d, %s, %d, %s" % (node.address, node.distance_to_root, node.path_to_root,  node.flow_rate,
-                                      ", ".join(sorted(node.connecting_addresses))))
+assert evaluate_paths(parse_text(test_input_text), "AA", 30, 1) == (1651, "AA DD BB JJ HH EE CC")
 
-# test_paths = evaluate_paths(parse_text(test_input_text), "AA", 30)
-
-
-nodes = parse_text(test_input_text)
-#populate_distance_to_root(test_nodes, "AA")
-#print_node_tree(test_nodes)
-
-evaluate_paths(nodes, "AA", 30)
-
+assert evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA JJ BB CC", "AA DD HH EE")
 
 
 """
@@ -251,5 +194,9 @@ Valve KL has flow rate=0; tunnels lead to valves TN, OQ
 Valve ZX has flow rate=5; tunnels lead to valves JS, HP, VL, NQ, TS"""
 
 real_data_nodes = parse_text(real_data_input_text)
-#populate_distance_to_root(real_data_nodes, "AA")
-#print_node_tree(real_data_nodes)
+part_1_solution = evaluate_paths(real_data_nodes, "AA", 30)
+print("Part 1 - the most pressure than can be released is %d by following path %s" % part_1_solution)
+
+part_2_solution = evaluate_paths(real_data_nodes, "AA", 26, 2)
+print("Part 1 - the most pressure than can be released is %d by following path %s" % part_2_solution)
+
