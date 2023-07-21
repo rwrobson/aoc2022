@@ -200,3 +200,4 @@ print("Part 1 - the most pressure than can be released is %d by following path %
 part_2_solution = evaluate_paths(real_data_nodes, "AA", 26, 2)
 print("Part 1 - the most pressure than can be released is %d by following path %s" % part_2_solution)
 
+# https://www.reddit.com/r/adventofcode/comments/zn6k1l/2022_day_16_solutions/
