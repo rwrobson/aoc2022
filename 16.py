@@ -77,7 +77,7 @@ def parse_text(text: str) -> dict[str, Node]:
     return { node.address : node for node in parsed_nodes }
 
 
-def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, actors: int) -> (int, str):
+def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, actors: int = 1) -> (int, str):
     closed_valves = [address for address in nodes if nodes[address].flow_rate > 0]
     for address in closed_valves:
         nodes[address].calc_distances(nodes)
@@ -86,14 +86,13 @@ def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, 
     best_path = ""
     best_value = 0
 
-    def build_paths(closed_valves_in_scenario: list[str], time_left: int, current_path: str, current_path_value: int):
+    def build_paths(closed_valves_in_scenario: list[str], time_left: int, current_path: str, current_path_value: int, actors_left: int):
         nonlocal best_path, best_value
         if False and len(closed_valves_in_scenario) == 0 or time_left < 0:
             # all the valves are open, or we are out of time, nothing left to do
             if not best_value or current_path_value > best_value:
                 best_path = current_path
                 best_value = current_path_value
-                print("Found %d at %s" % (best_value, best_path))
             return
         this_node_address = current_path[-2:]
         found_something_better = False
@@ -104,20 +103,23 @@ def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, 
                 found_something_better = True
                 new_closed_values = [address for address in closed_valves_in_scenario if address != next_valve_address]
                 new_value = current_path_value + nodes[next_valve_address].flow_rate * new_time_left
-                build_paths(new_closed_values, new_time_left, current_path+" "+next_valve_address, new_value)
+                build_paths(new_closed_values, new_time_left, current_path+" "+next_valve_address, new_value, actors_left)
+        if actors_left > 1:
+            build_paths(closed_valves_in_scenario, time_limit, current_path + ">" + start_address, current_path_value,
+                        actors_left - 1)
         if not found_something_better:
             if not best_value or current_path_value > best_value:
                 best_path = current_path
                 best_value = current_path_value
                 print("Found %d at %s" % (best_value, best_path))
 
-    build_paths(closed_valves, time_limit, start_address, 0)
+    build_paths(closed_valves, time_limit, start_address, 0, actors)
     return best_value, best_path
 
 
 assert evaluate_paths(parse_text(test_input_text), "AA", 30, 1) == (1651, "AA DD BB JJ HH EE CC")
 
-assert evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA JJ BB CC", "AA DD HH EE")
+assert evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA DD HH EE>AA JJ BB CC")
 
 
 """
@@ -198,6 +200,6 @@ part_1_solution = evaluate_paths(real_data_nodes, "AA", 30)
 print("Part 1 - the most pressure than can be released is %d by following path %s" % part_1_solution)
 
 part_2_solution = evaluate_paths(real_data_nodes, "AA", 26, 2)
-print("Part 1 - the most pressure than can be released is %d by following path %s" % part_2_solution)
+print("Part 2 - the most pressure than can be released is %d by following path %s" % part_2_solution)
 
 # https://www.reddit.com/r/adventofcode/comments/zn6k1l/2022_day_16_solutions/
