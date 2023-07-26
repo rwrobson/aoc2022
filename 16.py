@@ -21,6 +21,7 @@ class Node:
         self.connecting_addresses = connecting_addresses
 
         self.distances = None
+        self.closest_distance = None
 
     def calc_distances(self, nodes: dict[str]):
         # Dijkstra
@@ -51,6 +52,10 @@ class Node:
                 del unvisited_list[current_address]
 
         self.distances = visited_list
+        for address in visited_list:
+            if address != self.address and nodes[address].flow_rate > 0:
+                if not self.closest_distance or visited_list[address] < self.closest_distance:
+                    self.closest_distance = visited_list[address]
 
     def __repr__(self):
         return "Node(%s, %d, %s)" % (self.path_to_root,
@@ -78,7 +83,8 @@ def parse_text(text: str) -> dict[str, Node]:
 
 
 def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, actors: int = 1) -> (int, str):
-    closed_valves = [address for address in nodes if nodes[address].flow_rate > 0]
+    closed_valves = sorted([address for address in nodes if nodes[address].flow_rate > 0],
+                           key=lambda address: -nodes[address].flow_rate)
     for address in closed_valves:
         nodes[address].calc_distances(nodes)
     nodes[start_address].calc_distances(nodes)
@@ -88,12 +94,26 @@ def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, 
 
     def build_paths(closed_valves_in_scenario: list[str], time_left: int, current_path: str, current_path_value: int, actors_left: int):
         nonlocal best_path, best_value
-        if False and len(closed_valves_in_scenario) == 0 or time_left < 0:
-            # all the valves are open, or we are out of time, nothing left to do
-            if not best_value or current_path_value > best_value:
-                best_path = current_path
-                best_value = current_path_value
-            return
+
+        if actors_left == 1:
+            """ 
+            Estimate the hypothetical maximum total value left by calculating if you were to visit the nodes in 
+            descending order of flow_rate, and each time going only the distance to the closest node (even if that's
+            not the one with the highest flow rate).  It should be a ceiling on the max value of the so far
+            unexplored recursions at this point.  If the value so far plus this hypothetical maximum is still lower
+            than the best path so far, there is no point in continuing and we can kill any further recursion.
+            Note that the closed_valves list is already sorted in descending order by flow rate. 
+            """
+            remaining_value_estimate = 0
+            time_remaining_in_estimate = time_left
+            for valve_address in closed_valves_in_scenario:
+                time_remaining_in_estimate -= nodes[valve_address].closest_distance + 1
+                if time_remaining_in_estimate <= 0:
+                    break
+                remaining_value_estimate += nodes[valve_address].flow_rate * time_remaining_in_estimate
+            if current_path_value + remaining_value_estimate < best_value:
+                return
+
         this_node_address = current_path[-2:]
         found_something_better = False
         for next_valve_address in closed_valves_in_scenario:
@@ -111,15 +131,19 @@ def evaluate_paths(nodes: dict[str, Node], start_address: str, time_limit: int, 
             if not best_value or current_path_value > best_value:
                 best_path = current_path
                 best_value = current_path_value
-                print("Found %d at %s" % (best_value, best_path))
+                if DEBUG:
+                    print("Found %d at %s" % (best_value, best_path))
 
     build_paths(closed_valves, time_limit, start_address, 0, actors)
     return best_value, best_path
 
 
+DEBUG = False
+
 assert evaluate_paths(parse_text(test_input_text), "AA", 30, 1) == (1651, "AA DD BB JJ HH EE CC")
 
-assert evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA DD HH EE>AA JJ BB CC")
+assert evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA JJ BB CC>AA DD HH EE") or \
+       evaluate_paths(parse_text(test_input_text), "AA", 26, 2) == (1707, "AA DD HH EE>AA JJ BB CC")
 
 
 """
