@@ -122,3 +122,24 @@ real_jet_pattern = "><<<<><<>><<>><><<<>>><<<<>>>><<>>><>>><<<>><<<><<<><><><>>>
                    "><<><<<><<><<<<>>><<<<>>>><<>><<>>><><<<>><>>>><<<>>><><<><<<>>><<<<>>><>>><<><<><<>><>><<><<>>><" \
                    "<<<"
 
+CHAMBER_WIDTH = 7
+START_HOR_POS = 2
+HORZ = 0
+VERT = 1
+
+"""
+The tall, vertical chamber is exactly seven units wide. Each rock appears so that its left edge is two units away from 
+the left wall and its bottom edge is three units above the highest rock in the room (or the floor, if there isn't one).
+
+After a rock appears, it alternates between being pushed by a jet of hot gas one unit (in the direction indicated by 
+the next symbol in the jet pattern) and then falling one unit down. If any movement would cause any part of the rock to 
+move into the walls, floor, or a stopped rock, the movement instead does not occur. If a downward movement would have 
+caused a falling rock to move into the floor or an already-fallen rock, the falling rock stops where it is (having 
+landed on something) and a new rock immediately begins falling.
+"""
+
+def simulate_shapes(jet_pattern: str, rock_count):
+    highest_rock = 0
+    for rock_number in range(0, rock_count):
+        shape = shapes[rock_number % len(shapes)]
+        pos = (START_HOR_POS, highest_rock + len(shape)) # + 1???
